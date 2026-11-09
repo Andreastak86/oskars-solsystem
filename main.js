@@ -415,7 +415,31 @@ for (const k of alleKropper) {
 }
 function oppdaterNavKnapper() {
     for (const k of alleKropper) k.knapp.classList.toggle("aktiv", fokus === k);
+    $("#meny-planeter-tekst").textContent = fokus
+        ? `🪐 ${fokus.data.navn}`
+        : "🪐 Planeter";
 }
+
+// Nedtrekksmenyer på mobil: bare én meny åpen om gangen
+const menyKnapper = {
+    planeter: $("#meny-planeter"),
+    kontroller: $("#meny-kontroller"),
+};
+let apenMeny = null;
+function settMeny(navn) {
+    apenMeny = navn;
+    for (const [n, knapp] of Object.entries(menyKnapper)) {
+        bunn.classList.toggle(`apen-${n}`, n === navn);
+        knapp.setAttribute("aria-expanded", n === navn);
+    }
+}
+for (const [n, knapp] of Object.entries(menyKnapper)) {
+    knapp.addEventListener("click", () => settMeny(apenMeny === n ? null : n));
+}
+// Lukk planetmenyen når man har valgt en planet
+nav.addEventListener("click", (e) => {
+    if (e.target.closest("button") && apenMeny === "planeter") settMeny(null);
+});
 
 // Klikk på navnelappene
 for (const k of kropper) {
@@ -429,10 +453,10 @@ for (const k of kropper) {
 const stråle = new THREE.Raycaster();
 const peker = new THREE.Vector2();
 let nedXY = null;
-renderer.domElement.addEventListener(
-    "pointerdown",
-    (e) => (nedXY = [e.clientX, e.clientY]),
-);
+renderer.domElement.addEventListener("pointerdown", (e) => {
+    nedXY = [e.clientX, e.clientY];
+    settMeny(null); // trykk i rommet lukker åpne menyer
+});
 renderer.domElement.addEventListener("pointerup", (e) => {
     if (!nedXY || Math.hypot(e.clientX - nedXY[0], e.clientY - nedXY[1]) > 5)
         return;

@@ -35,7 +35,7 @@
 
         <footer class="bunn">
             <nav id="nav"></nav>
-            <div class="kontroller">
+            <div class="kontroller" id="kontroller">
                 <button id="pause" title="Pause">⏸️</button>
                 <div class="fart">
                     <span class="fart-ikon" aria-hidden="true">🐢</span>
@@ -61,6 +61,24 @@
                 <label
                     ><input id="ekte" type="checkbox" /> Ekte avstander</label
                 >
+            </div>
+            <!-- Bare på mobil: to knapper som åpner menyene over -->
+            <div class="mobil-linje">
+                <button
+                    id="meny-planeter"
+                    aria-controls="nav"
+                    aria-expanded="false"
+                >
+                    <span id="meny-planeter-tekst">🪐 Planeter</span>
+                    <span class="pil" aria-hidden="true">▾</span>
+                </button>
+                <button
+                    id="meny-kontroller"
+                    aria-controls="kontroller"
+                    aria-expanded="false"
+                >
+                    ⚙️ Fart og dato <span class="pil" aria-hidden="true">▾</span>
+                </button>
             </div>
         </footer>
 
