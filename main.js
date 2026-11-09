@@ -158,6 +158,81 @@ function lagBane(farge) {
     );
 }
 
+// ============ Avlange baner (Pluto) ============
+// Planetene over går i sirkler. Pluto har en avlang, skjev bane, så vi regner ut
+// hvor den er med Keplers lov. Svaret er en retning (lengde 1) og avstanden i AU.
+const grad = THREE.MathUtils.degToRad;
+function banePunkt(p, E) {
+    const nu =
+        2 *
+        Math.atan2(
+            Math.sqrt(1 + p.e) * Math.sin(E / 2),
+            Math.sqrt(1 - p.e) * Math.cos(E / 2),
+        );
+    const r = p.au * (1 - p.e * Math.cos(E));
+    const u = nu + grad(p.perihel - p.node);
+    const O = grad(p.node),
+        i = grad(p.inkl);
+    const X = Math.cos(O) * Math.cos(u) - Math.sin(O) * Math.sin(u) * Math.cos(i);
+    const Y = Math.sin(O) * Math.cos(u) + Math.cos(O) * Math.sin(u) * Math.cos(i);
+    const Z = Math.sin(u) * Math.sin(i);
+    // Samme retninger som planetene: ekliptikkens X → x, Y → –z, nordover → y
+    return { retning: new THREE.Vector3(X, Z, -Y), r };
+}
+function keplerPos(p, dager) {
+    const M = grad(p.L0 + (360 / p.periode) * dager - p.perihel);
+    let E = M;
+    for (let k = 0; k < 8; k++)
+        E -= (E - p.e * Math.sin(E) - M) / (1 - p.e * Math.cos(E));
+    return banePunkt(p, E);
+}
+
+// Kompakt avstand for en ekte avstand i AU: vi følger de samme trinnene som planetene
+// (Uranus → Neptun) og fortsetter videre utover. Da krysser Pluto innenfor Neptun
+// akkurat så mye som i virkeligheten.
+const sirkelPlaneter = planeter.filter((p) => p.e === undefined);
+function kompaktFraAU(au) {
+    let i = 1;
+    while (i < sirkelPlaneter.length - 1 && au > sirkelPlaneter[i].au) i++;
+    const a = sirkelPlaneter[i - 1],
+        b = sirkelPlaneter[i];
+    return a.kompakt + ((au - a.au) / (b.au - a.au)) * (b.kompakt - a.kompakt);
+}
+
+function lagAvlangBane(p) {
+    const N = 512;
+    const punkter = [];
+    for (let i = 0; i <= N; i++) punkter.push(banePunkt(p, (i / N) * Math.PI * 2));
+    const geo = new THREE.BufferGeometry().setFromPoints(
+        punkter.map(() => new THREE.Vector3()),
+    );
+    const linje = new THREE.Line(
+        geo,
+        new THREE.LineDashedMaterial({
+            color: p.prikk,
+            transparent: true,
+            opacity: 0.35,
+        }),
+    );
+    linje.userData.punkter = punkter;
+    return linje;
+}
+// Tegner banen på nytt for gjeldende avstandsmodus (stiplet = dvergplanet)
+function oppdaterAvlangBane(linje) {
+    const pos = linje.geometry.attributes.position;
+    linje.userData.punkter.forEach(({ retning, r }, i) => {
+        const v = retning.clone().multiplyScalar(radius(kompaktFraAU(r), r));
+        pos.setXYZ(i, v.x, v.y, v.z);
+    });
+    pos.needsUpdate = true;
+    linje.geometry.computeBoundingSphere();
+    linje.computeLineDistances();
+    const d = linje.geometry.attributes.lineDistance;
+    const strek = d.getX(d.count - 1) / 240;
+    linje.material.dashSize = strek;
+    linje.material.gapSize = strek * 0.8;
+}
+
 let jordKropp;
 for (const p of planeter) {
     const holder = new THREE.Group(); // flytter seg rundt solen
@@ -209,7 +284,7 @@ for (const p of planeter) {
         tilt.add(ring);
     }
 
-    const bane = lagBane(p.prikk);
+    const bane = p.e !== undefined ? lagAvlangBane(p) : lagBane(p.prikk);
     banerGruppe.add(bane);
     kropp.bane = bane;
 
@@ -309,8 +384,8 @@ function verdenPos(kropp) {
 
 function oversiktPosisjon() {
     return avstandMal === 1
-        ? new THREE.Vector3(0, 420, 760)
-        : new THREE.Vector3(0, 70, 125);
+        ? new THREE.Vector3(0, 560, 1010) // langt nok ut til at hele Pluto-banen synes
+        : new THREE.Vector3(0, 85, 150);
 }
 
 function fokuser(kropp) {
@@ -573,12 +648,21 @@ function animer() {
     for (const k of kropper) {
         const p = k.data;
         if (!k.bane) continue; // solen og månen går ikke i bane rundt solen
+        k.mesh.rotation.y += p.spinn * dt * spinnFart;
+        if (p.e !== undefined) {
+            const { retning, r: au } = keplerPos(p, simDager);
+            k.holder.position.copy(retning).multiplyScalar(radius(kompaktFraAU(au), au));
+            if (k.bane.userData.avstand !== avstand) {
+                oppdaterAvlangBane(k.bane);
+                k.bane.userData.avstand = avstand;
+            }
+            continue;
+        }
         const r = radius(p.kompakt, p.au);
         const vinkel = THREE.MathUtils.degToRad(
             p.L0 + (360 / p.periode) * simDager,
         );
         k.holder.position.set(Math.cos(vinkel) * r, 0, -Math.sin(vinkel) * r);
-        k.mesh.rotation.y += p.spinn * dt * spinnFart;
         k.bane.scale.setScalar(r);
     }
     if (jordKropp.skyer) jordKropp.skyer.rotation.y += 0.6 * dt * spinnFart;

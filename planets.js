@@ -250,6 +250,40 @@ export const planeter = [
             ["🎂", "Ett år på Neptun varer i 165 år. Ingen har noen gang fått bursdag der!"],
         ],
     },
+    {
+        navn: "Pluto",
+        kallenavn: "Var en planet i 76 år",
+        type: "🧊 Dvergplanet",
+        dvergplanet: true,
+        // Pluto går i en avlang og skjev bane, så den får ekte baneelementer i stedet for en sirkel.
+        // kompakt-avstanden regnes ut fra au (se kompaktFraAU i main.js).
+        au: 39.482, // halve langaksen – snittavstanden
+        e: 0.2488, // hvor avlang banen er (0 = sirkel)
+        inkl: 17.14, // hvor skjev banen er i forhold til de andre (grader)
+        node: 110.3, // der banen krysser planet-flaten på vei opp (grader)
+        perihel: 224.07, // retningen til punktet nærmest solen (grader)
+        storrelse: 0.18,
+        periode: 90560,
+        L0: 238.93,
+        tilt: 122.5,
+        spinn: -0.12,
+        prikk: "#d9b99a",
+        stats: [
+            ["📏", "Så stor", "Mindre enn Månen"],
+            ["☀️", "Avstand fra Solen", "5 900 millioner km"],
+            ["🎂", "Ett år varer", "248 år"],
+            ["🔄", "Snurrer en runde på", "6 dager – baklengs!"],
+            ["🌙", "Måner", "5"],
+            ["🌡️", "Så kald", "–230 grader"],
+        ],
+        fakta: [
+            ["🏅", "Pluto var den niende planeten i 76 år. I 2006 bestemte forskerne at den er en dvergplanet."],
+            ["💗", "Pluto har et stort hjerte! Det er en kjempeslette av is."],
+            ["🔀", "Banen til Pluto er avlang og skjev. Noen ganger er Pluto nærmere Solen enn Neptun er!"],
+            ["👯", "Den største månen heter Charon. Den er nesten halvparten så stor som Pluto."],
+            ["🎂", "Pluto ble funnet i 1930. Den har ikke gått én hel runde rundt Solen siden!"],
+        ],
+    },
 ];
 
 export const manen = {

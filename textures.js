@@ -234,6 +234,29 @@ export const teksturer = {
             return c;
         }),
 
+    Pluto: () =>
+        kuleTekstur((x, y, z, lat, lon) => {
+            const n = fbm(x * 3, y * 3, z * 3, 5, 120);
+            const k = fbm(x * 12, y * 12, z * 12, 3, 121);
+            let c = rampe(
+                ["#6b4a35", "#a07a5c", "#cdb293", "#ece0cc"],
+                skaler(n * 0.6 + k * 0.4, 0.3, 0.72),
+            );
+            // Mørkt, rødbrunt belte langs ekvator
+            const belte = skaler(0.35 - Math.abs(lat + 0.05), 0, 0.2) * skaler(0.5 - n, -0.1, 0.1);
+            c = bland(c, hex("#4a2a20"), belte * 0.8);
+            // Hjertet (Tombaugh Regio): (u² + v² – 1)³ – u²·v³ ≤ 0
+            const dLon = Math.atan2(Math.sin(lon - 3.0), Math.cos(lon - 3.0));
+            const u = dLon / 0.42,
+                v = (lat - 0.25) / 0.4 + 0.15;
+            const h = (u * u + v * v - 1) ** 3 - u * u * v ** 3;
+            if (h < 0.02) {
+                const kant = skaler(0.02 - h, 0, 0.12);
+                c = bland(c, rampe(["#efe6da", "#fbf6ee"], k), kant * 0.95);
+            }
+            return c;
+        }),
+
     Manen: () =>
         kuleTekstur((x, y, z) => {
             const n = fbm(x * 2.5, y * 2.5, z * 2.5, 5, 100);
