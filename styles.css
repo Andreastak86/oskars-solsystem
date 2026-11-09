@@ -1,0 +1,421 @@
+* {
+    box-sizing: border-box;
+}
+
+:root {
+    /* Andika: lett å lese for barn (enkel a og g). Fredoka: rund og leken. */
+    --lesefont: "Andika", "Comic Sans MS", system-ui, sans-serif;
+    --lekefont: "Fredoka", "Andika", system-ui, sans-serif;
+    --gul: #ffd166;
+    --rosa: #ff8fc7;
+    --bla: #6ec8ff;
+    --gronn: #7ee08a;
+    --panel: rgba(18, 20, 52, 0.78);
+}
+
+body {
+    margin: 0;
+    background: #000;
+    color: #f4f6ff;
+    font-family: var(--lesefont);
+    font-size: 18px;
+    overflow: hidden;
+}
+
+canvas {
+    display: block;
+}
+
+.etikett-lag {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+}
+
+/* Navnelapper på planetene */
+.etikett {
+    pointer-events: auto;
+    cursor: pointer;
+    font-family: var(--lekefont);
+    font-size: 16px;
+    font-weight: 600;
+    padding: 3px 10px;
+    margin-bottom: 4px;
+    border-radius: 99px;
+    color: #fff;
+    background: rgba(20, 24, 60, 0.6);
+    border: 2px solid rgba(255, 255, 255, 0.25);
+    text-shadow: 0 1px 3px #000;
+    user-select: none;
+    transition:
+        background 0.2s,
+        transform 0.2s;
+}
+@media (hover: hover) {
+    .etikett:hover {
+        background: rgba(110, 120, 255, 0.85);
+        transform: scale(1.1);
+    }
+}
+.etikett.liten {
+    font-size: 14px;
+}
+
+/* Panelene: runde og fargerike */
+.topp,
+#info,
+.bunn > * {
+    background: var(--panel);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 3px solid rgba(140, 160, 255, 0.35);
+    border-radius: 24px;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
+}
+
+.topp,
+#info,
+.bunn {
+    z-index: 10;
+}
+
+.topp {
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    padding: 12px 20px;
+}
+.topp h1 {
+    margin: 0;
+    font-family: var(--lekefont);
+    font-weight: 700;
+    font-size: 30px;
+}
+.regnbue {
+    background: linear-gradient(90deg, var(--gul), var(--rosa), var(--bla));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+#dato {
+    font-size: 17px;
+    color: var(--gul);
+    margin-top: 2px;
+    font-variant-numeric: tabular-nums;
+}
+.hint {
+    margin: 6px 0 0;
+    font-size: 16px;
+    color: #c9d0ff;
+}
+
+/* Faktaboks */
+#info {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    width: min(400px, calc(100vw - 32px));
+    max-height: calc(100vh - var(--bunn-hoyde, 160px) - 48px);
+    max-height: calc(100dvh - var(--bunn-hoyde, 160px) - 48px);
+    overscroll-behavior: contain;
+    overflow-y: auto;
+    padding: 20px 22px;
+    border-color: var(--prikk, rgba(140, 160, 255, 0.35));
+    transform: translateX(calc(100% + 40px));
+    transition: transform 0.45s cubic-bezier(0.34, 1.4, 0.5, 1); /* litt sprett */
+}
+#info.vis {
+    transform: none;
+}
+#info-type {
+    font-size: 17px;
+    color: #c9d0ff;
+}
+#info-navn {
+    margin: 2px 0 0;
+    font-family: var(--lekefont);
+    font-weight: 700;
+    font-size: 40px;
+    line-height: 1.1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+#info-navn::before {
+    content: "";
+    flex: none;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--prikk);
+    box-shadow: 0 0 16px var(--prikk);
+}
+#info-kallenavn {
+    font-family: var(--lekefont);
+    font-weight: 500;
+    font-size: 20px;
+    color: var(--gul);
+    margin: 4px 0 14px;
+}
+
+/* Tallene som små kort */
+#info-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin: 0 0 18px;
+}
+.stat {
+    background: rgba(255, 255, 255, 0.07);
+    border-radius: 16px;
+    padding: 8px 10px;
+}
+.stat dt {
+    font-size: 15px;
+    color: #c9d0ff;
+}
+.stat dd {
+    margin: 2px 0 0;
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.25;
+}
+
+#info h3 {
+    font-family: var(--lekefont);
+    font-weight: 600;
+    font-size: 24px;
+    margin: 0 0 10px;
+    color: var(--gul);
+}
+
+/* Fakta som snakkebobler */
+#info-fakta {
+    list-style: none;
+    margin: 0 0 18px;
+    padding: 0;
+    font-size: 20px;
+    line-height: 1.5;
+}
+#info-fakta li {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 18px;
+    padding: 10px 14px;
+    margin-bottom: 10px;
+}
+#info-fakta .ikon {
+    font-size: 30px;
+    line-height: 1.1;
+    flex: none;
+}
+
+#lukk {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border-radius: 50%;
+    font-size: 20px;
+    color: #fff;
+}
+#tilbake {
+    width: 100%;
+    font-size: 20px;
+    padding: 12px;
+    background: linear-gradient(90deg, #5b6cff, #b05bff);
+    border: none;
+}
+
+/* Bunnpanel */
+.bunn {
+    position: fixed;
+    left: 50%;
+    bottom: 16px;
+    transform: translateX(-50%);
+    width: min(1140px, calc(100vw - 32px));
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+/* Alle 10 knappene får alltid plass: 2 rader med 5, eller 1 rad på brede skjermer */
+#nav {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+    padding: 8px;
+}
+#nav button {
+    min-width: 0;
+    padding: 8px 4px;
+    font-family: var(--lekefont);
+    font-weight: 600;
+    font-size: 18px;
+}
+@media (min-width: 1180px) {
+    #nav {
+        grid-template-columns: repeat(10, 1fr);
+    }
+    #nav button {
+        font-size: 17px;
+    }
+    #nav .prikk {
+        margin-right: 5px;
+    }
+}
+.prikk {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    margin-right: 7px;
+    vertical-align: -1px;
+    background: var(--prikk);
+    box-shadow: 0 0 8px var(--prikk);
+}
+.kontroller {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 18px;
+    padding: 10px 16px;
+    font-size: 18px;
+}
+.fart {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1 1 260px;
+    flex-wrap: wrap;
+}
+.fart-ikon {
+    font-size: 22px;
+}
+.fart input {
+    flex: 1 1 100px;
+    accent-color: var(--gul);
+    height: 28px;
+}
+#fart-tekst {
+    min-width: 170px;
+    color: var(--gul);
+    font-variant-numeric: tabular-nums;
+}
+label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    user-select: none;
+}
+label input {
+    accent-color: var(--bla);
+    width: 22px;
+    height: 22px;
+}
+
+button {
+    font: inherit;
+    color: inherit;
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.18);
+    border-radius: 16px;
+    padding: 8px 14px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition:
+        background 0.15s,
+        transform 0.15s;
+    touch-action: manipulation;
+}
+button:active {
+    transform: scale(0.94);
+}
+@media (hover: hover) {
+    button:hover {
+        background: rgba(255, 255, 255, 0.2);
+    }
+}
+button.aktiv {
+    background: rgba(110, 200, 255, 0.35);
+    border-color: var(--bla);
+}
+#pause {
+    width: 48px;
+    padding: 6px 0;
+}
+
+@media (max-width: 640px) {
+    body {
+        font-size: 17px;
+    }
+    .topp {
+        top: 10px;
+        left: 10px;
+        right: 10px;
+        padding: 8px 14px;
+    }
+    .topp h1 {
+        font-size: 24px;
+    }
+    #dato {
+        font-size: 15px;
+    }
+    .hint {
+        font-size: 15px;
+    }
+    #info {
+        top: auto;
+        right: 10px;
+        width: calc(100vw - 20px);
+        bottom: calc(var(--bunn-hoyde, 200px) + 18px);
+        max-height: min(55vh, calc(100vh - var(--bunn-hoyde, 200px) - 120px));
+        max-height: min(
+            55dvh,
+            calc(100dvh - var(--bunn-hoyde, 200px) - 120px)
+        );
+        padding: 14px 16px;
+    }
+    #info-navn {
+        font-size: 32px;
+    }
+    #info-fakta {
+        font-size: 19px;
+    }
+    .bunn {
+        width: calc(100vw - 20px);
+        bottom: max(10px, env(safe-area-inset-bottom));
+    }
+    #nav {
+        gap: 4px;
+        padding: 6px;
+    }
+    /* På mobil: prikken over navnet, så navnet får hele bredden */
+    #nav button {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 3px;
+        padding: 6px 1px;
+        font-size: clamp(12px, 3.7vw, 15px);
+        border-width: 1px;
+        border-radius: 14px;
+    }
+    #nav .prikk {
+        margin: 0;
+    }
+    .kontroller {
+        gap: 8px 14px;
+        padding: 8px 12px;
+        font-size: 16px;
+    }
+    #fart-tekst {
+        min-width: 0;
+        flex-basis: 100%;
+        text-align: center;
+    }
+}

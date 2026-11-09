@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="no">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Solsystemet vårt</title>
+        <!-- Andika er laget for barn som lærer å lese. Fredoka er rund og leken til overskrifter. -->
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            rel="stylesheet"
+            href="https://fonts.googleapis.com/css2?family=Andika:wght@400;700&family=Fredoka:wght@500;600;700&display=swap"
+        />
+        <link rel="stylesheet" href="/styles.css" />
+    </head>
+    <body>
+        <header class="topp">
+            <h1>🚀 <span class="regnbue">Solsystemet</span></h1>
+            <div id="dato"></div>
+            <p class="hint">
+                Trykk på en planet for å fly dit!
+            </p>
+        </header>
+
+        <aside id="info">
+            <button id="lukk" title="Lukk" aria-label="Lukk">✕</button>
+            <div id="info-type"></div>
+            <h2 id="info-navn"></h2>
+            <div id="info-kallenavn"></div>
+            <dl id="info-stats"></dl>
+            <h3>🤩 Visste du at …</h3>
+            <ul id="info-fakta"></ul>
+            <button id="tilbake">🚀 Fly tilbake</button>
+        </aside>
+
+        <footer class="bunn">
+            <nav id="nav"></nav>
+            <div class="kontroller">
+                <button id="pause" title="Pause">⏸️</button>
+                <div class="fart">
+                    <span class="fart-ikon" aria-hidden="true">🐢</span>
+                    <input
+                        id="fart"
+                        type="range"
+                        min="0"
+                        max="100"
+                        value="0"
+                        aria-label="Fart"
+                    />
+                    <span class="fart-ikon" aria-hidden="true">🐇</span>
+                    <span id="fart-tekst"></span>
+                </div>
+                <button id="idag">📅 I dag</button>
+                <label
+                    ><input id="vis-navn" type="checkbox" checked /> Navn</label
+                >
+                <label
+                    ><input id="vis-baner" type="checkbox" checked />
+                    Baner</label
+                >
+                <label
+                    ><input id="ekte" type="checkbox" /> Ekte avstander</label
+                >
+            </div>
+        </footer>
+
+        <script type="module" src="/main.js"></script>
+    </body>
+</html>

@@ -1,0 +1,24 @@
+# Avhengigheter (hentes på nytt med npm install)
+node_modules/
+
+# Ferdig bygd side (Vercel bygger selv)
+dist/
+
+# Vercel
+.vercel/
+
+# Hemmeligheter
+.env
+.env.*
+
+# Logger
+*.log
+npm-debug.log*
+
+# Editor og operativsystem
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
