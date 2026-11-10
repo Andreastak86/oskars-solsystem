@@ -1,11 +1,13 @@
-// Alle data om solen, planetene og månen.
+// Alle data om solen, planetene, månen og Halleys komet.
 //
 // kompakt  = avstand fra solen i "kompakt" visning (så alt får plass på skjermen)
 // au       = ekte avstand fra solen i AU (1 AU = avstanden jorden–solen)
 // storrelse = radius i scenen (ikke ekte forhold – da ville de fleste planetene vært usynlige prikker)
 // periode  = hvor mange jorddager én runde rundt solen tar
 // L0       = hvor planeten sto (i grader) 1. januar 2000 kl. 12 – brukes for å finne ut hvor den står i dag
-// tilt     = hvor skjev planeten står (grader)
+// pol      = retningen nordpolen peker mot på stjernehimmelen [timer, grader] – gir riktige årstider
+// e        = hvor avlang banen er (0 = sirkel). Vi tegner sirkler, men farten rundt blir ekte
+// perihel  = retningen til punktet der planeten er nærmest solen (grader)
 // spinn    = hvor fort den snurrer rundt seg selv i animasjonen
 //
 // Tekstene er skrevet for en som akkurat har lært å lese:
@@ -19,6 +21,7 @@ export const solen = {
     kallenavn: "Stjernen vår",
     type: "⭐ Stjerne",
     storrelse: 5,
+    pol: [19.0753, 63.87],
     prikk: "#ffb340",
     stats: [
         ["📏", "Så stor", "Kjempestor!"],
@@ -44,7 +47,11 @@ export const planeter = [
         storrelse: 0.4,
         periode: 87.969,
         L0: 252.25,
-        tilt: 0.03,
+        pol: [18.734, 61.4155],
+        e: 0.20563,
+        perihel: 77.457,
+        inkl: 7.005, // hvor skjev banen er (grader) – brukes når vi ser fra Jorden
+        node: 48.331,
         spinn: 0.15,
         prikk: "#a8a29c",
         stats: [
@@ -71,8 +78,13 @@ export const planeter = [
         storrelse: 0.85,
         periode: 224.701,
         L0: 181.98,
-        tilt: 177.4,
-        spinn: 0.08,
+        pol: [18.184, 67.16],
+        e: 0.00677,
+        perihel: 131.602,
+        inkl: 3.395, // hvor skjev banen er (grader) – brukes når vi ser fra Jorden
+        node: 76.68,
+        spinn: -0.08, // baklengs
+        atmosfaere: ["#ffe2a8", 1.3], // farge og styrke på gløden i kanten
         prikk: "#e8c27a",
         stats: [
             ["📏", "Så stor", "Nesten like stor som Jorden"],
@@ -98,8 +110,13 @@ export const planeter = [
         storrelse: 0.9,
         periode: 365.256,
         L0: 100.46,
-        tilt: 23.4,
+        pol: [0, 90],
+        e: 0.01671,
+        perihel: 102.937,
+        inkl: 0, // hvor skjev banen er (grader) – brukes når vi ser fra Jorden
+        node: 0,
         spinn: 0.5,
+        atmosfaere: ["#6fb2ff", 1.6], // farge og styrke på gløden i kanten
         prikk: "#4a9be0",
         stats: [
             ["📏", "Så stor", "Største steinplanet"],
@@ -125,8 +142,13 @@ export const planeter = [
         storrelse: 0.6,
         periode: 686.98,
         L0: 355.45,
-        tilt: 25.2,
+        pol: [21.1513, 54.4325],
+        e: 0.09339,
+        perihel: 336.06,
+        inkl: 1.85, // hvor skjev banen er (grader) – brukes når vi ser fra Jorden
+        node: 49.558,
         spinn: 0.48,
+        atmosfaere: ["#ffb08a", 0.6], // farge og styrke på gløden i kanten
         prikk: "#d0643a",
         stats: [
             ["📏", "Så stor", "Halvparten av Jorden"],
@@ -152,8 +174,13 @@ export const planeter = [
         storrelse: 2.6,
         periode: 4332.59,
         L0: 34.4,
-        tilt: 3.1,
+        pol: [17.8705, 64.4953],
+        e: 0.04839,
+        perihel: 14.728,
+        inkl: 1.303, // hvor skjev banen er (grader) – brukes når vi ser fra Jorden
+        node: 100.464,
         spinn: 1.1,
+        atmosfaere: ["#f0dcc0", 0.7], // farge og styrke på gløden i kanten
         prikk: "#d8b48a",
         stats: [
             ["📏", "Så stor", "Største planet!"],
@@ -179,9 +206,14 @@ export const planeter = [
         storrelse: 2.2,
         periode: 10759.22,
         L0: 49.94,
-        tilt: 26.7,
+        pol: [2.7059, 83.537],
+        e: 0.05386,
+        perihel: 92.599,
+        inkl: 2.485, // hvor skjev banen er (grader) – brukes når vi ser fra Jorden
+        node: 113.666,
         spinn: 1.0,
         ring: true,
+        atmosfaere: ["#f3e4bc", 0.7], // farge og styrke på gløden i kanten
         prikk: "#e6d29c",
         stats: [
             ["📏", "Så stor", "Nest største planet"],
@@ -206,8 +238,13 @@ export const planeter = [
         storrelse: 1.4,
         periode: 30688.5,
         L0: 313.23,
-        tilt: 97.8,
-        spinn: 0.7,
+        pol: [17.1541, -15.175],
+        e: 0.04726,
+        perihel: 170.954,
+        inkl: 0.773, // hvor skjev banen er (grader) – brukes når vi ser fra Jorden
+        node: 74.017,
+        spinn: -0.7, // baklengs
+        atmosfaere: ["#b4f2f6", 1.0], // farge og styrke på gløden i kanten
         prikk: "#8fd8e0",
         stats: [
             ["📏", "Så stor", "4 ganger bredere enn Jorden"],
@@ -233,8 +270,13 @@ export const planeter = [
         storrelse: 1.35,
         periode: 60182,
         L0: 304.88,
-        tilt: 28.3,
+        pol: [19.9573, 43.46],
+        e: 0.00859,
+        perihel: 44.965,
+        inkl: 1.77, // hvor skjev banen er (grader) – brukes når vi ser fra Jorden
+        node: 131.784,
         spinn: 0.75,
+        atmosfaere: ["#7aa2ff", 1.1], // farge og styrke på gløden i kanten
         prikk: "#4f7fe0",
         stats: [
             ["📏", "Så stor", "4 ganger bredere enn Jorden"],
@@ -257,9 +299,7 @@ export const manen = {
     kallenavn: "Jordens beste venn",
     type: "🌙 Måne",
     storrelse: 0.25,
-    avstand: 1.8,
-    periode: 27.321582,
-    L0: 218.316, // månens plass sett fra jorden 1. januar 2000 – gir riktig fullmåne og nymåne
+    avstand: 1.8, // hvor langt fra Jorden den tegnes. Hvor den står regnes ut i astro.js
     prikk: "#cfcfcf",
     stats: [
         ["📏", "Så stor", "En fjerdedel av Jorden"],
@@ -272,6 +312,43 @@ export const manen = {
         ["👨‍🚀", "12 mennesker har gått på Månen."],
         ["👣", "Det blåser ikke på Månen. Derfor er fotsporene til astronautene der ennå!"],
         ["🔦", "Månen lyser ikke selv. Den lyser fordi Solen skinner på den."],
+        ["🩸", "Når Månen går inn i skyggen til Jorden, blir den rød. Det kalles blodmåne!"],
+    ],
+};
+
+// Halleys komet. Går i en veldig avlang bane – fra innenfor Venus til utenfor Neptun.
+// Tallene er "baneelementer" fra NASA. perihelDag = dager fra år 2000 til den var nærmest Solen.
+const PERIHEL_1986 = (Date.UTC(1986, 1, 9, 11) - Date.UTC(2000, 0, 1, 12)) / 86400000;
+const PERIHEL_2061 = (Date.UTC(2061, 6, 28, 12) - Date.UTC(2000, 0, 1, 12)) / 86400000;
+export const halley = {
+    navn: "Halley",
+    kallenavn: "Kometen som kommer tilbake",
+    type: "☄️ Komet",
+    storrelse: 0.05,
+    prikk: "#9fdcff",
+    bane: {
+        a: 17.834, // halve langaksen i AU
+        e: 0.96714,
+        inkl: 162.26, // over 90° betyr at den går rundt "feil vei"
+        node: 58.42,
+        perihel: 58.42 + 111.33,
+        perihelDag: PERIHEL_1986,
+        periode: PERIHEL_2061 - PERIHEL_1986,
+    },
+    stats: [
+        ["📏", "Så stor", "15 km lang"],
+        ["🧊", "Laget av", "Is, støv og stein"],
+        ["☀️", "Avstand fra Solen", "Fra 88 til 5 200 millioner km"],
+        ["🎂", "Én runde tar", "76 år"],
+        ["🔭", "Sist vi så den", "1986"],
+        ["🔜", "Kommer tilbake", "2061"],
+    ],
+    fakta: [
+        ["❄️", "En komet er som en skitten snøball. Den er laget av is, støv og stein."],
+        ["☄️", "Når kometen kommer nær Solen, smelter isen. Da får den en lang, lysende hale!"],
+        ["👉", "Halen peker alltid bort fra Solen – også når kometen er på vei ut igjen."],
+        ["🔜", "Halley kommer tilbake i 2061. Hvor gammel er du da?"],
+        ["⏩", "Vil du se halen? Skru farten helt opp og se Halley suse forbi Solen!"],
     ],
 };
 

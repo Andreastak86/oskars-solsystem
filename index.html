@@ -22,11 +22,15 @@
             </p>
         </header>
 
+        <!-- Dukker opp når det er formørkelse -->
+        <div id="hendelse" role="status" aria-live="polite"></div>
+
         <aside id="info">
             <button id="lukk" title="Lukk" aria-label="Lukk">✕</button>
             <div id="info-type"></div>
             <h2 id="info-navn"></h2>
             <div id="info-kallenavn"></div>
+            <dl id="info-levende" hidden></dl>
             <dl id="info-stats"></dl>
             <h3>🤩 Visste du at …</h3>
             <ul id="info-fakta"></ul>
@@ -51,16 +55,15 @@
                     <span id="fart-tekst"></span>
                 </div>
                 <button id="idag">📅 I dag</button>
-                <label
-                    ><input id="vis-navn" type="checkbox" checked /> Navn</label
+                <button id="neste-formorkelse">🌘 Neste formørkelse</button>
+                <button id="sta-pa-jorden">🔭 Stå på Jorden</button>
+                <button
+                    id="apne-innstillinger"
+                    title="Innstillinger"
+                    aria-label="Innstillinger"
                 >
-                <label
-                    ><input id="vis-baner" type="checkbox" checked />
-                    Baner</label
-                >
-                <label
-                    ><input id="ekte" type="checkbox" /> Ekte avstander</label
-                >
+                    ⚙️
+                </button>
             </div>
             <!-- Bare på mobil: to knapper som åpner menyene over -->
             <div class="mobil-linje">
@@ -77,10 +80,28 @@
                     aria-controls="kontroller"
                     aria-expanded="false"
                 >
-                    ⚙️ Fart og dato <span class="pil" aria-hidden="true">▾</span>
+                    ⏱️ Tid og mer <span class="pil" aria-hidden="true">▾</span>
                 </button>
             </div>
         </footer>
+
+        <!-- Innstillinger: åpnes med tannhjulet -->
+        <div id="teppe"></div>
+        <aside
+            id="innstillinger"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="innstillinger-tittel"
+        >
+            <button id="lukk-innstillinger" title="Lukk" aria-label="Lukk">✕</button>
+            <h2 id="innstillinger-tittel">⚙️ Innstillinger</h2>
+            <div id="innstillinger-innhold"></div>
+        </aside>
+
+        <!-- Korte beskjeder, f.eks. "Jupiter er under bakken nå" -->
+        <div id="beskjed" role="status" aria-live="polite"></div>
+        <!-- Svart teppe som toner inn og ut når vi bytter mellom rommet og bakken -->
+        <div id="overgang"></div>
 
         <script type="module" src="/main.js"></script>
     </body>
