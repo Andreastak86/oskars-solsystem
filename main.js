@@ -1,10 +1,28 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import {
     CSS2DRenderer,
     CSS2DObject,
 } from "three/addons/renderers/CSS2DRenderer.js";
-import { solen, planeter, manen, halley, belte, AU_SKALA } from "./planets.js";
+import {
+    solen,
+    planeter,
+    manen,
+    halley,
+    belte,
+    jupiterManer,
+    iss,
+    AU_SKALA,
+} from "./planets.js";
+import {
+    hentBanedata,
+    issStatus,
+    issPos,
+    iSollys,
+    synlighet,
+    nestePassering,
+} from "./iss.js";
 import { teksturer, ringTekstur, glodTekstur } from "./textures.js";
 import {
     dagerFraDato,
@@ -23,7 +41,12 @@ import {
     geoSol,
     maneTopo,
     hoyde,
+    geoPos,
+    jupiterManer as jupiterManePos,
+    stjernetid,
+    ekvVektorTilEkliptikk,
 } from "./astro.js";
+import { nasaTekstur, harNasaBilde, NASA_TONE } from "./nasa.js";
 import {
     stjerner,
     stjernebilder,
@@ -448,6 +471,7 @@ function lagAtmosfaere(storrelse, [farge, styrke]) {
 }
 
 let jordKropp;
+let saturnRingKart; // gjenbrukes i kikkerten på bakken
 const atmosfaerer = [];
 for (const p of planeter) {
     const holder = new THREE.Group(); // flytter seg rundt solen
@@ -494,7 +518,7 @@ for (const p of planeter) {
         const ring = new THREE.Mesh(
             new THREE.RingGeometry(indre, ytre, 128),
             new THREE.MeshStandardMaterial({
-                map: ringTekstur(indre / ytre),
+                map: (saturnRingKart = ringTekstur(indre / ytre)),
                 side: THREE.DoubleSide,
                 transparent: true,
                 depthWrite: false,
@@ -569,6 +593,53 @@ const maneSkygge = new THREE.Mesh(
 );
 maneSkygge.visible = false;
 jordKropp.holder.add(maneSkygge);
+
+// ============ Jupiters måner ============
+// De ligger i Jupiters ekvatorplan. Avstandene er krympet (kvadratroten), ellers ville
+// Kallisto vært halvveis ute ved Saturn.
+const jupiterKropp = kropper.find((k) => k.data.navn === "Jupiter");
+const jupiterSystem = new THREE.Group();
+jupiterSystem.quaternion.copy(jupiterKropp.akse.quaternion);
+jupiterKropp.holder.add(jupiterSystem);
+const jupiterManeKropper = jupiterManer.map((data) => {
+    const mesh = new THREE.Mesh(
+        new THREE.SphereGeometry(data.storrelse, 32, 16),
+        new THREE.MeshStandardMaterial({ map: teksturer[data.navn](), roughness: 1 }),
+    );
+    jupiterSystem.add(mesh);
+    const etikett = lagEtikett(data, data.storrelse + 0.25);
+    etikett.element.classList.add("liten");
+    mesh.add(etikett);
+    const kropp = { data, holder: mesh, mesh, etikett, jupiterMane: true };
+    mesh.userData.kropp = kropp;
+    kropper.push(kropp);
+    klikkbare.push(mesh);
+    return kropp;
+});
+const jupiterManeAvstand = (r) => jupiterKropp.data.storrelse * (1.3 + 0.55 * Math.sqrt(r));
+const motJorden = new THREE.Vector3();
+const motVest = new THREE.Vector3();
+const jupiterPol = new THREE.Vector3(0, 1, 0);
+const jupiterInv = jupiterSystem.quaternion.clone().invert();
+function oppdaterJupiterManer() {
+    // Månenes vinkel måles fra punktet rett foran Jupiter sett fra Jorden,
+    // så vi trenger retningen mot Jorden – flatt i Jupiters ekvatorplan
+    motJorden.copy(tilScene(geoPos(jupiterKropp.data, simDager))).negate().applyQuaternion(jupiterInv);
+    motJorden.y = 0;
+    motJorden.normalize();
+    motVest.copy(motJorden).negate().cross(jupiterPol);
+    jupiterManePos(simDager).forEach((m, i) => {
+        const u = THREE.MathUtils.degToRad(m.u);
+        const mesh = jupiterManeKropper[i].mesh;
+        mesh.position
+            .copy(motJorden)
+            .multiplyScalar(Math.cos(u))
+            .addScaledVector(motVest, Math.sin(u))
+            .multiplyScalar(jupiterManeAvstand(m.r));
+        // Som vår egen måne viser de alltid samme side mot planeten sin
+        mesh.rotation.y = Math.atan2(mesh.position.z, -mesh.position.x);
+    });
+}
 
 // ============ Halleys komet ============
 const kometGruppe = new THREE.Group();
@@ -693,6 +764,107 @@ kometTreff.userData.kropp = kometKropp;
 kropper.push(kometKropp);
 klikkbare.push(kometMesh, kometTreff);
 
+// ============ Romstasjonen ISS ============
+// Går rundt Jorden. Høyden er forstørret 3,5 ganger, ellers ville den nesten ligget oppå bakken.
+const issGruppe = new THREE.Group();
+issGruppe.visible = false;
+jordKropp.holder.add(issGruppe);
+const issTreff = new THREE.Mesh(
+    new THREE.SphereGeometry(0.15, 8, 6),
+    new THREE.MeshBasicMaterial({ visible: false }),
+);
+issGruppe.add(issTreff);
+new GLTFLoader()
+    .loadAsync(import.meta.env.BASE_URL + "nasa/iss.glb")
+    .then(({ scene: modell }) => {
+        // Gjør modellen ca. 0,2 enheter bred og legg midten i origo
+        const boks = new THREE.Box3().setFromObject(modell);
+        const str = boks.getSize(new THREE.Vector3());
+        modell.scale.setScalar(0.2 / Math.max(str.x, str.y, str.z));
+        const midt = new THREE.Box3().setFromObject(modell).getCenter(new THREE.Vector3());
+        modell.position.sub(midt);
+        issGruppe.add(modell);
+    })
+    .catch(() => {
+        // Uten modell: en liten lysende prikk holder
+        issGruppe.add(
+            new THREE.Mesh(
+                new THREE.SphereGeometry(0.03, 12, 8),
+                new THREE.MeshBasicMaterial({ color: "#ffffff" }),
+            ),
+        );
+    });
+const issEtikett = lagEtikett(iss, 0.18);
+issEtikett.element.classList.add("liten");
+issGruppe.add(issEtikett);
+const issKropp = {
+    data: iss,
+    holder: issGruppe,
+    mesh: issTreff,
+    etikett: issEtikett,
+};
+issTreff.userData.kropp = issKropp;
+kropper.push(issKropp);
+klikkbare.push(issTreff);
+
+// Banen: en runde fram og tilbake fra der den er nå
+const issBane = new THREE.Line(
+    new THREE.BufferGeometry().setFromPoints(
+        Array.from({ length: 97 }, () => new THREE.Vector3()),
+    ),
+    new THREE.LineBasicMaterial({ color: "#cfe3ff", transparent: true, opacity: 0.45 }),
+);
+issBane.visible = false;
+jordKropp.holder.add(issBane);
+let issBaneTid = null;
+
+const issRadius = (hoydeKm) =>
+    jordKropp.data.storrelse * (1 + (hoydeKm / 6371) * 3.5);
+const issRetning = (pos) => tilScene(ekvVektorTilEkliptikk(pos)).normalize();
+const simMs = () => datoFraDager(simDager).getTime();
+
+function oppdaterIss() {
+    const ms = simMs();
+    const p = innst.iss ? issPos(ms) : null;
+    issGruppe.visible = !!p && modus === "rom";
+    issBane.visible = issGruppe.visible && innst.baner;
+    if (!p) return;
+    const r = issRetning(p.pos);
+    issGruppe.position.copy(r).multiplyScalar(issRadius(p.hoydeKm));
+    // Snu den så den flyr "forover" med solcellepanelene på tvers
+    issGruppe.up.copy(r);
+    const fart = issRetning(p.fart);
+    issGruppe.lookAt(
+        issGruppe.position.clone().add(jordKropp.holder.position).add(fart),
+    );
+    // Tegn banen på nytt av og til (den snur seg sakte)
+    if (issBaneTid === null || Math.abs(ms - issBaneTid) > 120000) {
+        issBaneTid = ms;
+        const pos = issBane.geometry.attributes.position;
+        for (let i = 0; i < pos.count; i++) {
+            const q = issPos(ms + (i - 48) * 60000);
+            if (!q) continue;
+            const v = issRetning(q.pos).multiplyScalar(issRadius(q.hoydeKm));
+            pos.setXYZ(i, v.x, v.y, v.z);
+        }
+        pos.needsUpdate = true;
+        issBane.geometry.computeBoundingSphere();
+    }
+}
+
+// Kort forklaring når vi ikke vet hvor ISS er
+function issIkkeKjent() {
+    const status = issStatus(simMs());
+    if (!innst.iss) return "🛰️ ISS er slått av i innstillingene.";
+    if (status === "fantes-ikke")
+        return "🛰️ ISS fantes ikke ennå! Den første delen ble skutt opp i november 1998.";
+    if (status === "ingen-data")
+        return "📡 Fikk ikke hentet hvor ISS er. Er du koblet til internett?";
+    if (status === "for-langt")
+        return "🛰️ Vi vet bare hvor ISS er noen dager før og etter i dag. Trykk 📅 I dag!";
+    return null;
+}
+
 // ============ Asteroidebeltet ============
 const belteGruppe = new THREE.Group();
 scene.add(belteGruppe);
@@ -738,6 +910,11 @@ const bakke = lagBakke({
     planeter,
     halley,
     glodTekstur,
+    teksturFor: (navn) =>
+        kropper.find((k) => k.data.navn === navn).mesh.material.map,
+    ringKart: saturnRingKart,
+    maneData: jupiterManer,
+    issData: iss,
 });
 bakke.lagLapper({ sol: solen, mane: manen });
 scene.add(bakke.gruppe);
@@ -776,10 +953,10 @@ function fokuser(kropp) {
         ? 3 + haleLengde * 0.9
         : kropp.data.storrelse * (kropp === solKropp ? 4 : 5) + 1.2;
     let retning, vri;
-    if (kropp === maneKropp) {
-        // Månen ses litt fra siden, ut fra Jorden – da kommer vi aldri inn i Jorden
-        retning = maneMesh.position.clone().setY(0).normalize();
-        vri = 1.1;
+    if (kropp === maneKropp || kropp === issKropp) {
+        // Månen og ISS ses litt fra siden, ut fra Jorden – da kommer vi aldri inn i Jorden
+        retning = kropp.holder.position.clone().setY(0).normalize();
+        vri = kropp === issKropp ? 0.6 : 1.1;
     } else {
         const utover = p.clone().setY(0);
         retning =
@@ -799,6 +976,7 @@ function fokuser(kropp) {
     };
     kontroller.enabled = false;
     kontroller.minDistance = kropp.data.storrelse * 1.5;
+    kontroller.zoomToCursor = false;
     sistePos.copy(p);
     visInfo(kropp.data);
     oppdaterNavKnapper();
@@ -816,6 +994,7 @@ function tilOversikt(varighet = 1.8) {
     };
     kontroller.enabled = false;
     kontroller.minDistance = solen.storrelse * 1.5;
+    kontroller.zoomToCursor = true;
     skjulInfo();
     oppdaterNavKnapper();
 }
@@ -864,6 +1043,25 @@ const levende = {
         return [
             [f.ikon, "Månen nå", f.navn],
             ["💡", "Så mye er lyst opp", `${f.lys} %`],
+        ];
+    },
+    ISS: () => {
+        const ukjent = issIkkeKjent();
+        if (ukjent) return [["❓", "Hvor er den nå?", "Vet ikke akkurat nå"]];
+        const p = issPos(simMs());
+        const nordSor = p.bredde >= 0 ? "nord" : "sør";
+        const ostVest = p.lengde >= 0 ? "øst" : "vest";
+        return [
+            ["🏔️", "Høyde over bakken", `${tall.format(p.hoydeKm)} km`],
+            ["🚀", "Fart", `${tall.format(p.fartKmt)} km/t`],
+            [
+                "📍",
+                "Rett over",
+                `${tall.format(Math.abs(p.bredde))}° ${nordSor}, ${tall.format(Math.abs(p.lengde))}° ${ostVest}`,
+            ],
+            iSollys(p.pos, simMs())
+                ? ["☀️", "Akkurat nå", "I sollys"]
+                : ["🌑", "Akkurat nå", "I Jordens skygge"],
         ];
     },
     Halley: () => {
@@ -922,12 +1120,14 @@ const alleKropper = [
     ...kropper.filter((k) => planeter.includes(k.data)),
     maneKropp,
     kometKropp,
+    issKropp,
 ];
 for (const k of alleKropper) {
     const b = document.createElement("button");
     b.innerHTML = `<span class="prikk" style="--prikk:${k.data.prikk}"></span>${k.data.navn}`;
     b.addEventListener("click", () => {
         if (modus === "bakke") siktMot(k.data);
+        else if (k === issKropp && issIkkeKjent()) beskjed(issIkkeKjent());
         else if (fokus === k) tilOversikt();
         else fokuser(k);
     });
@@ -1008,7 +1208,7 @@ renderer.domElement.addEventListener("pointermove", (e) => {
         if (!klype) klype = { avstand, fov: k.fov };
         k.fov = THREE.MathUtils.clamp(
             (klype.fov * klype.avstand) / avstand,
-            1.5,
+            MIN_FOV,
             100,
         );
         k.anim = null;
@@ -1026,7 +1226,7 @@ renderer.domElement.addEventListener(
         e.preventDefault();
         bakkeKamera.fov = THREE.MathUtils.clamp(
             bakkeKamera.fov * Math.exp(e.deltaY * 0.001),
-            1.5,
+            MIN_FOV,
             100,
         );
         bakkeKamera.anim = null;
@@ -1160,7 +1360,35 @@ function bruk(nokkel, verdi) {
         case "sted":
             oppdaterHint();
             break;
+        case "iss":
+            if (verdi) hentBanedata();
+            break;
+        case "nasaBilder":
+            byttBilder(verdi);
+            break;
     }
+}
+
+// Bytter mellom de tegnede overflatene og ekte bilder fra NASA
+const tegnetKart = new Map();
+async function byttBilder(ekte) {
+    const aktuelle = kropper.filter((k) => harNasaBilde(k.data.navn));
+    const kart = await Promise.all(
+        aktuelle.map((k) =>
+            ekte ? nasaTekstur(k.data.navn).catch(() => null) : null,
+        ),
+    );
+    if (innst.nasaBilder !== ekte) return; // brukeren ombestemte seg mens vi lastet
+    aktuelle.forEach((k, i) => {
+        const mat = k.mesh.material;
+        if (!tegnetKart.has(k)) tegnetKart.set(k, mat.map);
+        const nytt = kart[i] ?? tegnetKart.get(k); // fikk vi ikke lastet bildet, beholder vi det tegnede
+        mat.map = nytt;
+        mat.color.set(kart[i] ? (NASA_TONE[k.data.navn] ?? "#ffffff") : "#ffffff");
+        mat.needsUpdate = true;
+        // I kikkerten ser man skyene på Venus, ikke bakken – den beholder vi tegnet
+        if (k.data.navn !== "Venus") bakke.settKart(k.data.navn, nytt);
+    });
 }
 
 const innstillingerPanel = $("#innstillinger");
@@ -1178,12 +1406,16 @@ $("#lukk-innstillinger").addEventListener("click", () =>
 $("#teppe").addEventListener("click", () => visInnstillinger(false));
 
 function oppdaterHint() {
-    $(".hint").textContent =
+    const forstorret = Math.round(70 / bakkeKamera.fov);
+    const tekst =
         modus === "bakke"
-            ? `📍 ${gjeldendeSted(innst).navn} · Dra for å se deg rundt`
+            ? forstorret >= 3
+                ? `🔭 Kikkert: ${tall.format(forstorret)} ganger forstørret`
+                : `📍 ${gjeldendeSted(innst).navn} · Dra for å se deg rundt`
             : matchMedia("(pointer: coarse)").matches
               ? "👆 Trykk på en planet for å fly dit!"
               : "Trykk på en planet for å fly dit!";
+    if ($(".hint").textContent !== tekst) $(".hint").textContent = tekst;
 }
 
 // ============ Rommet ⇄ Stå på Jorden ============
@@ -1220,6 +1452,20 @@ for (const k of bakke.kropper)
         e.stopPropagation();
         zoomTil(k);
     });
+// Jupiters måner i kikkerten: trykk på navnet for å lese om dem
+for (const m of bakke.jupiterManer)
+    m.etikett.element.addEventListener("click", (e) => {
+        e.stopPropagation();
+        visInfo(m.data);
+    });
+
+// Hvor ISS står sett fra der vi er – og om den kan sees akkurat nå
+function issPaHimmelen() {
+    if (!innst.iss) return null;
+    const s = synlighet(simMs(), gjeldendeSted(innst));
+    if (!s) return null;
+    return { retning: issRetning(s.pil), kanSees: s.kanSees };
+}
 
 function oppdaterBakke() {
     return bakke.oppdater({
@@ -1228,6 +1474,9 @@ function oppdaterBakke() {
         rod: maneRod,
         dempet: maneDempet,
         visKompass: innst.kompass,
+        fov: bakkeKamera.fov,
+        hoydePx: innerHeight,
+        iss: issPaHimmelen(),
         // Zoomer vi inn på Solen, setter vi på solbriller
         solfilter:
             bakkeKamera.folger?.data === solen
@@ -1236,13 +1485,25 @@ function oppdaterBakke() {
     });
 }
 
+// Hvor mye vi zoomer inn: Solen og Månen fyller litt av bildet, Jupiter så vi ser
+// alle fire månene, og de andre planetene så kula (og fasen eller ringene) synes godt
+const MIN_FOV = 0.02;
+function kikkertFov(data) {
+    if (data === solen || data === manen) return 2.5;
+    if (data.navn === "Jupiter") return 0.5;
+    const k = bakke.kikkert.get(data.navn);
+    if (!k) return 25;
+    const bredde =
+        THREE.MathUtils.radToDeg(2 * k.vinkel) * (data.ring ? 2.3 : 1);
+    return THREE.MathUtils.clamp(bredde * 7, MIN_FOV, 25);
+}
+
 function zoomTil(k, { info = true } = {}) {
     if (!k) return;
-    const naer = k.data === solen || k.data === manen;
     bakkeKamera.anim = {
         t: 0,
         fra: { az: bakkeKamera.az, alt: bakkeKamera.alt, fov: bakkeKamera.fov },
-        til: { ...vinklerFor(k.retning), fov: naer ? 2.5 : 25 },
+        til: { ...vinklerFor(k.retning), fov: kikkertFov(k.data) },
     };
     bakkeKamera.folger = k;
     if (info) visInfo(k.data);
@@ -1263,7 +1524,36 @@ function zoomUtBakke() {
     oppdaterNavKnapper();
 }
 
+const KOMPASS = ["nord", "nordøst", "øst", "sørøst", "sør", "sørvest", "vest", "nordvest"];
+const kompassOrd = (az) => KOMPASS[Math.round((((az % 360) + 360) % 360) / 45) % 8];
+const klokke = new Intl.DateTimeFormat("nb-NO", { hour: "2-digit", minute: "2-digit" });
+
+function issPaBakken() {
+    const ukjent = issIkkeKjent();
+    if (ukjent) return beskjed(ukjent);
+    const sted = gjeldendeSted(innst);
+    const k = bakke.kropper.find((b) => b.data === iss);
+    if (issPaHimmelen()?.kanSees) return zoomTil(k, { info: false });
+    const pass = nestePassering(simMs(), sted);
+    if (!pass)
+        return beskjed(`🛰️ ISS flyr ikke synlig over ${sted.navn} de neste dagene. Prøv et annet sted!`);
+    // Spol til litt før den dukker opp, og la tiden gå 10 ganger fortere
+    simDager = (pass.start - 20000 - Date.UTC(2000, 0, 1, 12)) / 86400000;
+    fart.value = 12;
+    oppdaterFart();
+    settPause(false);
+    oppdaterBakke();
+    const fra = vinklerFor(k.obj.position.clone().normalize());
+    zoomTil(k, { info: false });
+    bakkeKamera.anim.til.fov = 70;
+    const dato = datoFraDager(simDager);
+    beskjed(
+        `🛰️ ISS flyr over ${sted.navn} ${datoFormat.format(dato)} kl. ${klokke.format(dato)}! Den kommer fra ${kompassOrd(fra.az)} og går ${tall.format(pass.maksHoyde)}° opp på himmelen.`,
+    );
+}
+
 function siktMot(data) {
+    if (data === iss) return issPaBakken();
     if (data === jordKropp.data)
         return beskjed(
             "🌍 Du står jo på Jorden! Trykk «🚀 Til rommet» for å se den utenfra.",
@@ -1292,7 +1582,8 @@ function styrBakkeKamera(dt) {
         const dAz = ((til.az - k.anim.fra.az + 540) % 360) - 180; // korteste vei rundt
         k.az = k.anim.fra.az + dAz * e;
         k.alt = THREE.MathUtils.lerp(k.anim.fra.alt, til.alt, e);
-        k.fov = THREE.MathUtils.lerp(k.anim.fra.fov, til.fov, e);
+        // Zoom "ganger" i stedet for "pluss": like jevnt fra 70° til 1° som fra 1° til 0,02°
+        k.fov = k.anim.fra.fov * (til.fov / k.anim.fra.fov) ** e;
         if (k.anim.t >= 1) k.anim = null;
     } else if (k.folger) {
         Object.assign(k, vinklerFor(k.folger.retning));
@@ -1556,6 +1847,19 @@ function skjulHimmelNavnBakPlaneter() {
     }
 }
 
+// Kameraet skal aldri kunne gå inn i en klode – da skyves det ut igjen til overflaten
+const klodeSenter = new THREE.Vector3();
+function holdKameraetUtenforKlodene() {
+    for (const k of kropper) {
+        if (!k.mesh.visible) continue;
+        k.mesh.getWorldPosition(klodeSenter);
+        const minst = k.data.storrelse * 1.15 + camera.near;
+        const ut = camera.position.clone().sub(klodeSenter);
+        if (ut.lengthSq() < minst * minst)
+            camera.position.copy(klodeSenter).add(ut.setLength(minst));
+    }
+}
+
 // Månen: hvor den står, og om den er i skyggen til Jorden (blodmåne) eller kaster skygge på Jorden
 let maneRod = 0,
     maneDempet = 0;
@@ -1635,11 +1939,14 @@ function plasserAlt() {
         k.bane.scale.setScalar(r);
     }
     oppdaterManen();
+    oppdaterJupiterManer();
     oppdaterKometen();
+    oppdaterIss();
     scene.updateMatrixWorld();
 }
 
 let infoTeller = 0;
+let skyDrift = 0;
 const datoTekst = $("#dato");
 
 function animer() {
@@ -1658,8 +1965,13 @@ function animer() {
 
     plasserAlt();
     for (const k of kropper)
-        if (k.bane) k.mesh.rotation.y += k.data.spinn * dt * spinnFart;
-    jordKropp.skyer.rotation.y += 0.6 * dt * spinnFart;
+        if (k.bane && k !== jordKropp)
+            k.mesh.rotation.y += k.data.spinn * dt * spinnFart;
+    // Jorden snurrer i ekte takt: Greenwich peker dit stjernetiden sier.
+    // Da er det dag i Norge når det er dag i Norge! Skyene driver sakte for seg selv.
+    jordKropp.mesh.rotation.y = THREE.MathUtils.degToRad(stjernetid(simDager, 0));
+    skyDrift += 0.03 * dt * spinnFart;
+    jordKropp.skyer.rotation.y = jordKropp.mesh.rotation.y + skyDrift;
     if (forrigeAvstand !== avstand || !kometBane.userData.tegnet) {
         oppdaterKometBane();
         kometBane.userData.tegnet = true;
@@ -1680,10 +1992,16 @@ function animer() {
     if (modus === "bakke") {
         bakkeLys = oppdaterBakke();
         styrBakkeKamera(dt);
+        oppdaterHint();
         // Zoomet helt inn på Solen eller Månen: da er navnelappen bare i veien
+        // Zoomet helt inn: da er navnelappen på det vi ser på bare i veien
         if (camera.fov < 12)
             for (const k of bakke.kropper)
-                if (k.data === solen || k.data === manen)
+                if (
+                    k.data === solen ||
+                    k.data === manen ||
+                    k === bakkeKamera.folger
+                )
                     k.etikett.visible = false;
     } else if (fokus) {
         const p = verdenPos(fokus);
@@ -1718,9 +2036,11 @@ function animer() {
 
     if (modus === "rom") {
         kontroller.update();
+        holdKameraetUtenforKlodene();
         for (const k of kropper) {
             if (k === solKropp) continue;
             if (k === maneKropp) skjulHvisNaer(k, jordKropp, 45);
+            else if (k.jupiterMane) skjulHvisNaer(k, jupiterKropp, 28);
             else skjulHvisNaer(k, solKropp, 40);
         }
         if (infoTeller % 5 === 0) skjulHimmelNavnBakPlaneter();

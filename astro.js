@@ -301,3 +301,66 @@ export function hoyde(v, d, bredde, lengde) {
     const l = Math.hypot(v.x, v.y, v.z);
     return Math.asin((v.x * z.x + v.y * z.y + v.z * z.z) / l) / RAD;
 }
+
+// ---------- Jupiters fire store måner (de Galileo oppdaget i 1610) ----------
+// Meeus kap. 44 (den enkle metoden). u = vinkel rundt Jupiter, målt fra punktet rett
+// foran Jupiter sett fra Jorden. r = avstand i Jupiter-radier.
+// X = hvor langt til siden (vest er pluss), Y = hvor langt opp/ned, sett fra Jorden.
+export function jupiterManer(d) {
+    const V = 172.74 + 0.00111588 * d;
+    const M = 357.529 + 0.9856003 * d;
+    const N = 20.02 + 0.0830853 * d + 0.329 * sin(V);
+    const J = 66.115 + 0.9025179 * d - 0.329 * sin(V);
+    const A = 1.915 * sin(M) + 0.02 * sin(2 * M);
+    const B = 5.555 * sin(N) + 0.168 * sin(2 * N);
+    const K = J + A - B;
+    const R = 1.00014 - 0.01671 * cos(M) - 0.00014 * cos(2 * M);
+    const r = 5.20872 - 0.25208 * cos(N) - 0.00611 * cos(2 * N);
+    const avstand = Math.sqrt(r * r + R * R - 2 * r * R * cos(K));
+    const psi = Math.asin((R / avstand) * sin(K)) / RAD;
+    const t = d - avstand / 173; // lyset bruker litt tid fra Jupiter til oss
+    let u1 = 163.8069 + 203.4058646 * t + psi - B;
+    let u2 = 358.414 + 101.2916335 * t + psi - B;
+    let u3 = 5.7176 + 50.234518 * t + psi - B;
+    let u4 = 224.8092 + 21.48798 * t + psi - B;
+    const G = 331.18 + 50.310482 * t;
+    const H = 87.45 + 21.569231 * t;
+    const r1 = 5.9057 - 0.0244 * cos(2 * (u1 - u2));
+    const r2 = 9.3966 - 0.0882 * cos(2 * (u2 - u3));
+    const r3 = 14.9883 - 0.0216 * cos(G);
+    const r4 = 26.3627 - 0.1939 * cos(H);
+    const k1 = 0.473 * sin(2 * (u1 - u2)),
+        k2 = 1.065 * sin(2 * (u2 - u3)),
+        k3 = 0.165 * sin(G),
+        k4 = 0.843 * sin(H);
+    u1 += k1;
+    u2 += k2;
+    u3 += k3;
+    u4 += k4;
+    const lambda = 34.35 + 0.083091 * d + 0.329 * sin(V) + B;
+    const De = 3.12 * sin(lambda + 42.8); // hvor mye vi ser Jupiter "ovenfra"
+    return [
+        ["Io", u1, r1],
+        ["Europa", u2, r2],
+        ["Ganymedes", u3, r3],
+        ["Kallisto", u4, r4],
+    ].map(([navn, u, rr]) => ({
+        navn,
+        u: rundt(u),
+        r: rr,
+        X: rr * sin(u),
+        Y: -rr * cos(u) * sin(De),
+    }));
+}
+
+// Snu en pil fra ekvator-koordinater (som satellitter bruker) til ekliptikk-koordinater, og tilbake
+export const ekvVektorTilEkliptikk = ({ x, y, z }) => ({
+    x,
+    y: y * cos(SKRAATT) + z * sin(SKRAATT),
+    z: -y * sin(SKRAATT) + z * cos(SKRAATT),
+});
+export const ekliptikkVektorTilEkv = ({ x, y, z }) => ({
+    x,
+    y: y * cos(SKRAATT) - z * sin(SKRAATT),
+    z: y * sin(SKRAATT) + z * cos(SKRAATT),
+});

@@ -11,6 +11,9 @@ import {
     jordPos,
     senit,
     nordRetning,
+    ekvatorTilEkliptikk,
+    jupiterManer,
+    helioPos,
 } from "./astro.js";
 import { STOY_GLSL } from "./shader.js";
 
@@ -18,6 +21,10 @@ const RAD = Math.PI / 180;
 const SOL_AVSTAND = 2000;
 const MANE_AVSTAND = 1950; // litt nærmere enn Solen, så Månen kan dekke den
 const PLANET_AVSTAND = 2100;
+// Planetene i kikkerten tegnes helt inntil kameraet. Langt unna blir de så små at
+// skjermkortet ikke klarer å holde orden på hva som er foran og bak (Saturn og ringene).
+const KIKKERT_AVSTAND = 1;
+const AU_KM = 149597871;
 
 // Hvor klare planetene er (størrelsen på prikken)
 const KLARHET = {
@@ -42,7 +49,17 @@ export function dekning(avstand, rSol, rMane) {
     return flate / (Math.PI * rSol ** 2);
 }
 
-export function lagBakke({ tilScene, maneTekstur, planeter, halley, glodTekstur }) {
+export function lagBakke({
+    tilScene,
+    maneTekstur,
+    planeter,
+    halley,
+    glodTekstur,
+    teksturFor, // navn → tekstur (samme som i rommet)
+    ringKart,
+    maneData, // Jupiters måner
+    issData,
+}) {
     const gruppe = new THREE.Group();
     gruppe.visible = false;
 
@@ -197,13 +214,16 @@ export function lagBakke({ tilScene, maneTekstur, planeter, halley, glodTekstur 
     solSkive.renderOrder = solGlod.renderOrder = 1;
     gruppe.add(solGruppe);
 
-    // ---------- Månen – med ekte fase, fordi den lyses opp fra der Solen står ----------
-    const maneMesh = new THREE.Mesh(
-        new THREE.SphereGeometry(1, 48, 24),
+    // ---------- Kloder lyst opp av Solen: Månen, og planetene i kikkerten ----------
+    // Fasen kommer av seg selv: siden som vender mot Solen er lys.
+    // gjennomsiktig: den mørke siden synes ikke mot himmelen (planetene i kikkerten)
+    const klodeMateriale = (kart, sol = solV, gjennomsiktig = false) =>
         new THREE.ShaderMaterial({
+            transparent: gjennomsiktig,
+            defines: gjennomsiktig ? { GJENNOMSIKTIG: "" } : {},
             uniforms: {
-                kart: { value: maneTekstur },
-                sol: { value: solV },
+                kart: { value: kart },
+                sol: { value: sol },
                 rod: { value: 0 },
                 dempet: { value: 0 },
                 luft: { value: 0 },
@@ -232,11 +252,16 @@ export function lagBakke({ tilScene, maneTekstur, planeter, halley, glodTekstur 
                     c *= 1.0 - 0.15 * dempet - 0.45 * rod;
                     // Om dagen ligger den blå lufta foran Månen – derfor er nymånen usynlig
                     c = c * (1.0 - 0.35 * luft) + vec3(0.42, 0.6, 0.9) * luft;
-                    gl_FragColor = vec4(c, 1.0);
+                    #ifdef GJENNOMSIKTIG
+                        // Planetene i kikkerten lyser sterkere enn Månen (de er så langt unna Solen at vi må "skru opp")
+                        gl_FragColor = vec4(c * 1.4, smoothstep(0.0, 0.12, l));
+                    #else
+                        gl_FragColor = vec4(c, 1.0);
+                    #endif
                 }
             `,
-        }),
-    );
+        });
+    const maneMesh = new THREE.Mesh(new THREE.SphereGeometry(1, 48, 24), klodeMateriale(maneTekstur));
     gruppe.add(maneMesh);
 
     // ---------- Planetene som lysende prikker ----------
@@ -264,6 +289,83 @@ export function lagBakke({ tilScene, maneTekstur, planeter, halley, glodTekstur 
         prikker.push({ data: p, obj: sprite });
     }
 
+    // ---------- Kikkerten: planetene som små kuler i ekte størrelse ----------
+    const opp = new THREE.Vector3(0, 1, 0);
+    const kikkert = new Map();
+    for (const p of planeter.filter((p) => p.navn !== "Jorden")) {
+        const g = new THREE.Group();
+        const akse = new THREE.Group();
+        const pol = tilScene(ekvatorTilEkliptikk(...p.pol)).normalize();
+        akse.quaternion.setFromUnitVectors(opp, pol);
+        // Planeten lyses opp fra der Solen er sett fra planeten (ikke fra oss) – det gir fasene
+        const mesh = new THREE.Mesh(
+            new THREE.SphereGeometry(1, 48, 24),
+            klodeMateriale(teksturFor(p.navn), new THREE.Vector3(), true),
+        );
+        // Tegnes etter himmelfargen, så den mørke siden kan være gjennomsiktig mot den
+        mesh.renderOrder = 2;
+        akse.add(mesh);
+        if (p.ring) {
+            const ring = new THREE.Mesh(
+                new THREE.RingGeometry(1.25, 2.3, 128),
+                new THREE.MeshBasicMaterial({
+                    map: ringKart,
+                    side: THREE.DoubleSide,
+                    transparent: true,
+                    depthWrite: false,
+                }),
+            );
+            ring.rotation.x = -Math.PI / 2;
+            ring.renderOrder = 2;
+            akse.add(ring);
+        }
+        g.add(akse);
+        g.visible = false;
+        gruppe.add(g);
+        kikkert.set(p.navn, { gruppe: g, mesh, pol, vinkel: 0, data: p });
+    }
+
+    // Jupiters fire måner som små lysprikker ved siden av Jupiter
+    const maneTekst = { Io: "#ffe9a8", Europa: "#fff8ee", Ganymedes: "#f2eadf", Kallisto: "#d8cfc4" };
+    const jupiterManeObj = maneData.map((data) => {
+        const sprite = new THREE.Sprite(
+            new THREE.SpriteMaterial({
+                map: prikkTekstur,
+                color: new THREE.Color(maneTekst[data.navn]),
+                sizeAttenuation: false,
+                depthTest: false, // vi skjuler dem selv når de er bak Jupiter
+                depthWrite: false,
+                transparent: true,
+            }),
+        );
+        sprite.scale.set(0.009, 0.009, 1);
+        sprite.renderOrder = 3;
+        gruppe.add(sprite);
+        const div = document.createElement("div");
+        div.className = "etikett liten";
+        div.textContent = data.navn;
+        const lapp = new CSS2DObject(div);
+        lapp.center.set(0.5, 1.8);
+        gruppe.add(lapp);
+        return { data, obj: sprite, etikett: lapp };
+    });
+    const motJorden = new THREE.Vector3();
+    const motVest = new THREE.Vector3();
+
+    // ---------- ISS: en klar, hvit prikk som glir over himmelen ----------
+    const issPrikk = new THREE.Sprite(
+        new THREE.SpriteMaterial({
+            map: prikkTekstur,
+            color: "#ffffff",
+            sizeAttenuation: false,
+            depthWrite: false,
+            transparent: true,
+        }),
+    );
+    issPrikk.renderOrder = 1;
+    issPrikk.visible = false;
+    gruppe.add(issPrikk);
+
     // Navnelapper på alt vi kan se på himmelen
     function lagLapp(data, obj) {
         const div = document.createElement("div");
@@ -279,7 +381,17 @@ export function lagBakke({ tilScene, maneTekstur, planeter, halley, glodTekstur 
     const tilV = (v) => tilScene(v).normalize();
 
     // solfilter (0–1): som solformørkelsesbriller – himmelen blir svart og Solen oransje
-    function oppdater({ dager, sted, rod = 0, dempet = 0, visKompass = true, solfilter = 0 }) {
+    function oppdater({
+        dager,
+        sted,
+        rod = 0,
+        dempet = 0,
+        visKompass = true,
+        solfilter = 0,
+        fov = 70, // hvor mye vi ser (grader) – liten betyr at vi har zoomet inn
+        hoydePx = 900,
+        iss = null, // { retning (Vector3), kanSees }
+    }) {
         const { bredde, lengde } = sted;
         senitV.copy(tilV(senit(dager, bredde, lengde)));
         nordV.copy(tilV(nordRetning(dager, bredde, lengde)));
@@ -322,6 +434,9 @@ export function lagBakke({ tilScene, maneTekstur, planeter, halley, glodTekstur 
         solSkive.material.color.setRGB(1, 1 - 0.35 * filter, 1 - 0.75 * filter);
         bakken.material.uniforms.lys.value = Math.max(lys, 0.15 * skumring);
 
+        // Lysprikkene skal ha samme størrelse på skjermen uansett zoom
+        const zoom = Math.tan((fov / 2) * RAD) / Math.tan(35 * RAD);
+
         // Planetene og kometen
         const jord = jordPos(dager);
         for (const pr of prikker) {
@@ -332,10 +447,71 @@ export function lagBakke({ tilScene, maneTekstur, planeter, halley, glodTekstur 
                 // Kometen er bare synlig når den er nær Solen
                 pr.obj.visible = h.r < 4;
             } else v = geoPos(pr.data, dager);
-            pr.obj.position.copy(tilV(v)).multiplyScalar(PLANET_AVSTAND);
+            const retning = tilV(v);
+            pr.obj.position.copy(retning).multiplyScalar(PLANET_AVSTAND);
+            const str = (KLARHET[pr.data.navn] ?? 0.012) * zoom;
+            pr.obj.scale.set(str, str, 1);
             // Om dagen blir planetene borte i det blå (Venus holder lengst)
             const venus = pr.data.navn === "Venus";
-            pr.obj.material.opacity = 1 - lys * (venus ? 0.75 : 0.97);
+            let synlig = 1 - lys * (venus ? 0.75 : 0.97);
+
+            // I kikkerten: planeten som en ekte liten kule (med fase og ringer)
+            const k = kikkert.get(pr.data.navn);
+            if (k) {
+                const avstandKm = Math.hypot(v.x, v.y, v.z) * AU_KM;
+                k.vinkel = Math.asin(pr.data.km / avstandKm); // radius sett fra Jorden (radianer)
+                const over = retning.dot(senitV) > -0.01;
+                // Står Månen foran planeten, skal planeten ikke synes
+                const bakManen = Math.acos(THREE.MathUtils.clamp(retning.dot(maneV), -1, 1)) < rMane;
+                k.gruppe.visible = over && !bakManen;
+                k.gruppe.position.copy(retning).multiplyScalar(KIKKERT_AVSTAND);
+                k.gruppe.scale.setScalar(KIKKERT_AVSTAND * Math.tan(k.vinkel));
+                k.mesh.material.uniforms.luft.value = lys * 0.6;
+                const h = helioPos(pr.data, dager);
+                k.mesh.material.uniforms.sol.value.copy(tilV({ x: -h.x, y: -h.y, z: -h.z }));
+                k.retning = retning;
+                // Når kula blir stor nok til å se, tones lysprikken ut
+                const pikslerBred = ((2 * k.vinkel * (pr.data.ring ? 2.3 : 1)) / (fov * RAD)) * hoydePx;
+                synlig *= 1 - THREE.MathUtils.smoothstep(pikslerBred, 3, 10);
+                if (bakManen) synlig = 0;
+            }
+            pr.obj.material.opacity = synlig;
+        }
+
+        // Jupiters måner: hvor de står rundt Jupiter, sett fra oss
+        const jup = kikkert.get("Jupiter");
+        if (jup?.retning) {
+            // Vinkelen u måles fra punktet rett foran Jupiter, i Jupiters ekvatorplan
+            motJorden.copy(jup.retning).negate();
+            motJorden.addScaledVector(jup.pol, -motJorden.dot(jup.pol)).normalize();
+            motVest.copy(motJorden).negate().cross(jup.pol);
+            const radius = jup.gruppe.scale.x; // én Jupiter-radius
+            const naer = fov < 3;
+            jupiterManer(dager).forEach((m, i) => {
+                const o = jupiterManeObj[i];
+                const u = m.u * RAD;
+                o.obj.position
+                    .copy(motJorden)
+                    .multiplyScalar(Math.cos(u))
+                    .addScaledVector(motVest, Math.sin(u))
+                    .multiplyScalar(m.r * radius)
+                    .add(jup.gruppe.position);
+                // Bak Jupiter: skjult
+                const bak = Math.cos(u) < 0 && Math.abs(m.r * Math.sin(u)) < 1;
+                o.obj.visible = jup.gruppe.visible && !bak;
+                o.obj.material.opacity = 1 - lys * 0.9;
+                o.obj.scale.set(0.009 * zoom, 0.009 * zoom, 1);
+                o.etikett.position.copy(o.obj.position);
+                o.etikett.visible = o.obj.visible && naer;
+            });
+        }
+
+        // ISS: bare synlig når den er i sollys og det er mørkt der vi står
+        issPrikk.visible = !!iss?.kanSees;
+        if (iss?.retning) {
+            issPrikk.position.copy(iss.retning).multiplyScalar(2050);
+            const str = 0.028 * zoom;
+            issPrikk.scale.set(str, str, 1);
         }
 
         // Navnelappene: oppdater retning og skjul det som er under bakken
@@ -361,11 +537,18 @@ export function lagBakke({ tilScene, maneTekstur, planeter, halley, glodTekstur 
     function lagLapper({ sol, mane }) {
         kropper.push(lagLapp(sol, solGruppe), lagLapp(mane, maneMesh));
         for (const pr of prikker) kropper.push(lagLapp(pr.data, pr.obj));
+        kropper.push(lagLapp(issData, issPrikk));
     }
 
     return {
         gruppe,
         kropper,
+        kikkert,
+        jupiterManer: jupiterManeObj,
+        settKart: (navn, kart) => {
+            const k = kikkert.get(navn);
+            if (k) k.mesh.material.uniforms.kart.value = kart;
+        },
         lagLapper,
         oppdater,
         senit: senitV,
