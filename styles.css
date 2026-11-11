@@ -325,7 +325,7 @@ canvas {
     flex-direction: column;
     gap: 8px;
 }
-/* Alle 11 knappene får alltid plass: 2 rader med 6, eller 1 rad på brede skjermer */
+/* Alle 12 knappene får alltid plass: 2 rader med 6, eller 1 rad på brede skjermer */
 #nav {
     display: grid;
     grid-template-columns: repeat(6, 1fr);
@@ -341,7 +341,7 @@ canvas {
 }
 @media (min-width: 1180px) {
     #nav {
-        grid-template-columns: repeat(11, 1fr);
+        grid-template-columns: repeat(12, 1fr);
     }
     #nav button {
         font-size: 16px;
@@ -372,19 +372,25 @@ canvas {
     display: flex;
     align-items: center;
     gap: 8px;
-    flex: 1 1 260px;
-    flex-wrap: wrap;
+    flex: 1 1 0; /* tar plassen som er igjen på raden – i stedet for å skyve knapper ned */
+    min-width: 0;
+    flex-wrap: nowrap;
 }
 .fart-ikon {
     font-size: 22px;
 }
 .fart input {
     flex: 1 1 100px;
+    min-width: 60px;
     accent-color: var(--gul);
     height: 28px;
 }
+/* Fast bredde som rommer den lengste teksten ("1 sekund = 59 sekunder"),
+   så glidebryteren ikke hopper eller brytes ned på en ny linje mens man drar */
 #fart-tekst {
-    min-width: 170px;
+    flex: none;
+    width: 11.6em;
+    white-space: nowrap;
     color: var(--gul);
     font-variant-numeric: tabular-nums;
 }
@@ -506,8 +512,12 @@ button.aktiv {
         padding: 8px 12px;
         font-size: 16px;
     }
+    .fart {
+        flex: 1 1 100%; /* på mobil får fartsdelen hele raden for seg selv */
+        flex-wrap: wrap;
+    }
     #fart-tekst {
-        min-width: 0;
+        width: auto;
         flex-basis: 100%;
         text-align: center;
     }
@@ -693,6 +703,12 @@ button.aktiv {
 }
 .sted-rad select option {
     color: #111;
+}
+
+#innstillinger .kilde {
+    margin: 18px 0 4px;
+    font-size: 14px;
+    color: #c9d0ff;
 }
 
 /* Skjul navnene på klodene (men ikke stjernene) */

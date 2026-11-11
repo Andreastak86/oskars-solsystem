@@ -44,6 +44,7 @@ export const planeter = [
         type: "🪨 Steinplanet",
         kompakt: 9,
         au: 0.387,
+        km: 2440, // ekte radius – brukes i kikkerten
         storrelse: 0.4,
         periode: 87.969,
         L0: 252.25,
@@ -75,6 +76,7 @@ export const planeter = [
         type: "🪨 Steinplanet",
         kompakt: 13,
         au: 0.723,
+        km: 6052, // ekte radius – brukes i kikkerten
         storrelse: 0.85,
         periode: 224.701,
         L0: 181.98,
@@ -99,6 +101,8 @@ export const planeter = [
             ["🐌", "Venus snurrer veldig sakte. En dag der er lengre enn et helt år."],
             ["🙃", "Venus snurrer baklengs. Der står solen opp i vest."],
             ["✨", "Du kan se Venus på himmelen! Den ser ut som en veldig klar stjerne."],
+            ["🌗", "Venus har faser, akkurat som Månen. Det oppdaget Galileo med kikkerten sin."],
+            ["📡", "Skyene er så tykke at ingen kan se bakken. Romsonden Magellan tegnet et kart av den med radar."],
         ],
     },
     {
@@ -107,6 +111,7 @@ export const planeter = [
         type: "🪨 Steinplanet",
         kompakt: 18,
         au: 1.0,
+        km: 6371, // ekte radius – brukes i kikkerten
         storrelse: 0.9,
         periode: 365.256,
         L0: 100.46,
@@ -139,6 +144,7 @@ export const planeter = [
         type: "🪨 Steinplanet",
         kompakt: 23,
         au: 1.524,
+        km: 3390, // ekte radius – brukes i kikkerten
         storrelse: 0.6,
         periode: 686.98,
         L0: 355.45,
@@ -171,6 +177,7 @@ export const planeter = [
         type: "☁️ Gasskjempe",
         kompakt: 34,
         au: 5.203,
+        km: 71492, // ekte radius – brukes i kikkerten
         storrelse: 2.6,
         periode: 4332.59,
         L0: 34.4,
@@ -195,6 +202,7 @@ export const planeter = [
             ["🌀", "Den røde flekken er en kjempestorm. Den er større enn hele Jorden!"],
             ["☁️", "Jupiter har ingen bakke å stå på. Den er laget av gass."],
             ["⚡", "Det lyner på Jupiter – mye kraftigere enn her hjemme."],
+            ["🔭", "Galileo så de fire største månene med en kikkert i 1610. Prøv selv: stå på Jorden og zoom inn på Jupiter!"],
         ],
     },
     {
@@ -203,6 +211,7 @@ export const planeter = [
         type: "☁️ Gasskjempe",
         kompakt: 47,
         au: 9.537,
+        km: 60268, // ekte radius – brukes i kikkerten
         storrelse: 2.2,
         periode: 10759.22,
         L0: 49.94,
@@ -235,6 +244,7 @@ export const planeter = [
         type: "🧊 Iskjempe",
         kompakt: 59,
         au: 19.19,
+        km: 25559, // ekte radius – brukes i kikkerten
         storrelse: 1.4,
         periode: 30688.5,
         L0: 313.23,
@@ -267,6 +277,7 @@ export const planeter = [
         type: "🧊 Iskjempe",
         kompakt: 70,
         au: 30.07,
+        km: 24764, // ekte radius – brukes i kikkerten
         storrelse: 1.35,
         periode: 60182,
         L0: 304.88,
@@ -354,3 +365,102 @@ export const halley = {
 
 // Asteroidebeltet mellom Mars og Jupiter
 export const belte = { kompakt: 28, au: 2.7, periode: 1620 };
+
+// Jupiters fire store måner. Galileo oppdaget dem med en kikkert i januar 1610.
+// storrelse og avstand er i scenen (forstørret, så de synes). Hvor de står, regnes ut i astro.js.
+export const jupiterManer = [
+    {
+        navn: "Io",
+        kallenavn: "Vulkanmånen",
+        type: "🌋 Jupiters måne",
+        storrelse: 0.16,
+        prikk: "#e8c84a",
+        stats: [
+            ["📏", "Så stor", "Litt større enn Månen"],
+            ["🪐", "Avstand fra Jupiter", "422 000 km"],
+            ["🔄", "Går rundt Jupiter på", "1 dag og 18 timer"],
+            ["🔭", "Oppdaget", "I 1610 av Galileo"],
+        ],
+        fakta: [
+            ["🌋", "Io har over 400 vulkaner. Det er det mest vulkanske stedet i hele solsystemet!"],
+            ["🍕", "Io er gul og oransje og ser nesten ut som en pizza."],
+            ["🤏", "Jupiter drar og klemmer i Io hele tiden. Det gjør Io varm inni."],
+        ],
+    },
+    {
+        navn: "Europa",
+        kallenavn: "Ismånen",
+        type: "🧊 Jupiters måne",
+        storrelse: 0.14,
+        prikk: "#d9cfc0",
+        stats: [
+            ["📏", "Så stor", "Litt mindre enn Månen"],
+            ["🪐", "Avstand fra Jupiter", "671 000 km"],
+            ["🔄", "Går rundt Jupiter på", "3 og en halv dag"],
+            ["🔭", "Oppdaget", "I 1610 av Galileo"],
+        ],
+        fakta: [
+            ["🧊", "Europa er dekket av is. Under isen er det et stort, salt hav!"],
+            ["🐟", "Forskere lurer på om det kan finnes liv i havet under isen."],
+            ["🚀", "Romsonden Europa Clipper er på vei dit, og kommer fram i 2030."],
+        ],
+    },
+    {
+        navn: "Ganymedes",
+        kallenavn: "Den største månen",
+        type: "👑 Jupiters måne",
+        storrelse: 0.22,
+        prikk: "#a89f92",
+        stats: [
+            ["📏", "Så stor", "Større enn planeten Merkur!"],
+            ["🪐", "Avstand fra Jupiter", "1 070 000 km"],
+            ["🔄", "Går rundt Jupiter på", "7 dager"],
+            ["🔭", "Oppdaget", "I 1610 av Galileo"],
+        ],
+        fakta: [
+            ["👑", "Ganymedes er den største månen i hele solsystemet."],
+            ["🧲", "Det er den eneste månen vi vet om som har sitt eget magnetfelt."],
+            ["🌊", "Også Ganymedes har trolig et hav gjemt under isen."],
+        ],
+    },
+    {
+        navn: "Kallisto",
+        kallenavn: "Kratermånen",
+        type: "🕳️ Jupiters måne",
+        storrelse: 0.2,
+        prikk: "#8a7f72",
+        stats: [
+            ["📏", "Så stor", "Nesten like stor som Merkur"],
+            ["🪐", "Avstand fra Jupiter", "1 883 000 km"],
+            ["🔄", "Går rundt Jupiter på", "16 og en halv dag"],
+            ["🔭", "Oppdaget", "I 1610 av Galileo"],
+        ],
+        fakta: [
+            ["🕳️", "Kallisto er full av kratere. Overflaten er en av de eldste i solsystemet."],
+            ["🥶", "Det er rundt –140 grader kaldt der."],
+            ["🔭", "Med en vanlig kikkert kan du se Kallisto og de andre månene selv!"],
+        ],
+    },
+];
+
+// Den internasjonale romstasjonen. Hvor den er, regnes ut i iss.js fra ferske banedata.
+export const iss = {
+    navn: "ISS",
+    kallenavn: "Romstasjonen",
+    type: "🛰️ Romstasjon",
+    storrelse: 0.09,
+    prikk: "#e8eef7",
+    stats: [
+        ["📏", "Så stor", "Like lang som en fotballbane"],
+        ["🔄", "Én runde rundt Jorden", "92 minutter"],
+        ["🧑‍🚀", "Hvem bor der", "Astronauter fra hele verden"],
+        ["📅", "Folk om bord", "Hele tiden siden år 2000"],
+    ],
+    fakta: [
+        ["🌅", "ISS går rundt Jorden 16 ganger hver dag. Astronautene ser 16 soloppganger hver dag!"],
+        ["👀", "Du kan se ISS med bare øynene! Den ser ut som en klar stjerne som glir stille over himmelen."],
+        ["🌍", "Romstasjonen er bygget av mange land sammen."],
+        ["😴", "Astronautene sover i soveposer festet til veggen – ellers ville de svevd rundt!"],
+        ["🔭", "Stå på Jorden og trykk på ISS, så finner vi neste gang den flyr over deg!"],
+    ],
+};

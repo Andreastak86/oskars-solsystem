@@ -19,6 +19,8 @@ const STANDARD = {
     ekte: false,
     atmosfaere: true,
     asteroider: true,
+    nasaBilder: true,
+    iss: true,
     melkeveien: true,
     stjernebilder: true,
     stjernenavn: true,
@@ -37,6 +39,8 @@ const SEKSJONER = [
             ["ekte", "📏", "Ekte avstander"],
             ["atmosfaere", "🌫️", "Glød rundt planetene"],
             ["asteroider", "🪨", "Asteroidebeltet"],
+            ["nasaBilder", "📷", "Ekte bilder fra NASA"],
+            ["iss", "🛰️", "Romstasjonen ISS (henter data fra nettet)"],
         ],
     },
     {
@@ -147,4 +151,10 @@ export function lagPanel(boks, verdier, endret) {
             boks.appendChild(label);
         }
     }
+
+    const kilde = document.createElement("p");
+    kilde.className = "kilde";
+    kilde.textContent =
+        "📷 Bildene av planetene og månene og ISS-modellen kommer fra NASA, og er fri til bruk. Banedataene til ISS hentes fra CelesTrak.";
+    boks.appendChild(kilde);
 }

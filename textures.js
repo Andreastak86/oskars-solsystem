@@ -234,6 +234,49 @@ export const teksturer = {
             return c;
         }),
 
+    // ---------- Jupiters måner ----------
+    Io: () =>
+        kuleTekstur((x, y, z) => {
+            const n = fbm(x * 3, y * 3, z * 3, 5, 130);
+            const v = fbm(x * 9, y * 9, z * 9, 3, 131);
+            let c = rampe(["#8a5a1c", "#d9a62b", "#f1d36a", "#fbf0b0"], skaler(n, 0.3, 0.72));
+            if (v > 0.66) c = bland(c, hex("#3a2410"), skaler(v, 0.66, 0.74)); // vulkaner
+            else if (v < 0.32) c = bland(c, hex("#c4552a"), skaler(0.32 - v, 0, 0.08) * 0.7);
+            return c;
+        }),
+
+    Europa: () =>
+        kuleTekstur((x, y, z) => {
+            const n = fbm(x * 2, y * 2, z * 2, 4, 140);
+            let c = rampe(["#c9b8a0", "#e8ded0", "#f6f1ea"], skaler(n, 0.35, 0.65));
+            // Lange, brune sprekker i isen
+            for (const [f, seed] of [[3, 141], [5, 142]]) {
+                const s = fbm(x * f, y * f, z * f, 3, seed);
+                const sprekk = 1 - skaler(Math.abs(s - 0.5), 0, 0.018);
+                c = bland(c, hex("#8a5a3a"), sprekk * 0.75);
+            }
+            return c;
+        }),
+
+    Ganymedes: () =>
+        kuleTekstur((x, y, z) => {
+            const n = fbm(x * 2.5, y * 2.5, z * 2.5, 5, 150);
+            const k = fbm(x * 14, y * 14, z * 14, 3, 151);
+            return rampe(
+                ["#4f463d", "#7d7266", "#b3a898", "#d8cfc2"],
+                skaler(n * 0.7 + k * 0.3, 0.3, 0.7),
+            );
+        }),
+
+    Kallisto: () =>
+        kuleTekstur((x, y, z) => {
+            const n = fbm(x * 3, y * 3, z * 3, 4, 160);
+            const k = fbm(x * 22, y * 22, z * 22, 2, 161);
+            let c = rampe(["#2e2925", "#4d453d", "#6e655a"], skaler(n, 0.3, 0.7));
+            if (k > 0.68) c = bland(c, hex("#d8d2c8"), skaler(k, 0.68, 0.76)); // lyse kratere
+            return c;
+        }),
+
     Manen: () =>
         kuleTekstur((x, y, z) => {
             const n = fbm(x * 2.5, y * 2.5, z * 2.5, 5, 100);
